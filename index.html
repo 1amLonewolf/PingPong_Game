@@ -2,17 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Ping Pong Game</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <h1>AI vs AI Pong</h1>
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
-    <div style="margin-top: 16px;">
-        <button id="pauseBtn">Pause</button>
-        <button id="playBtn">Play</button>
+    <div class="game-shell">
+        <h1>Ping Pong</h1>
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <div class="controls">
+            <button id="pauseBtn" type="button">Pause</button>
+            <button id="playBtn" type="button" disabled>Play</button>
+        </div>
+        <div class="speed-controls" aria-label="Ball speed controls">
+            <button id="speedDownBtn" type="button" class="speed-btn">Slower</button>
+            <span id="speedLabel" class="speed-label">Speed: 6</span>
+            <button id="speedUpBtn" type="button" class="speed-btn">Faster</button>
+        </div>
     </div>
+
+    <div id="rotateHint" class="rotate-hint" aria-live="polite" aria-hidden="true">
+        <div class="rotate-hint__card">
+            <div class="rotate-hint__icon">↻</div>
+            <h2>Rotate your device</h2>
+            <p>Landscape mode gives the best playing feel.</p>
+        </div>
+    </div>
+
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
