@@ -14,6 +14,8 @@ const AI_X = canvas.width - PLAYER_X - PADDLE_WIDTH;
 const PADDLE_SPEED = 6;
 const DEFAULT_BALL_SPEED = 6;
 const BALL_SPEED_OPTIONS = [4, 6, 8, 10];
+const PADDLE_IMPACT_TRANSFER = 0.75;
+const MAX_BALL_SPEED = 16;
 
 const paddleImgLeft = new Image();
 paddleImgLeft.src = 'real_paddle_left.png';
@@ -31,6 +33,8 @@ const state = {
     ballY: (canvas.height - BALL_SIZE) / 2,
     ballVelX: DEFAULT_BALL_SPEED * (Math.random() > 0.5 ? 1 : -1),
     ballVelY: DEFAULT_BALL_SPEED * (Math.random() * 2 - 1),
+    playerPaddleVelY: 0,
+    aiPaddleVelY: 0,
     playerScore: 0,
     aiScore: 0,
     rightPaddleUp: false,
@@ -64,7 +68,7 @@ function getBallSpeed() {
 function updateSpeedButtons() {
     speedDownBtn.disabled = state.ballSpeedIndex === 0;
     speedUpBtn.disabled = state.ballSpeedIndex === BALL_SPEED_OPTIONS.length - 1;
-    speedLabel.textContent = 'Speed: ' + getBallSpeed();
+    speedLabel.textContent = 'Base speed: ' + getBallSpeed();
 }
 
 function setBallSpeed(nextIndex) {
@@ -384,6 +388,22 @@ function drawConfetti() {
     }
 }
 
+function applyPaddleBounce(paddleY, paddleVelocityY, horizontalDirection) {
+    const ballCenterY = state.ballY + BALL_SIZE / 2;
+    const paddleCenterY = paddleY + PADDLE_HEIGHT / 2;
+    const impactOffset = clamp((ballCenterY - paddleCenterY) / (PADDLE_HEIGHT / 2), -1, 1);
+
+    state.ballVelX = Math.abs(state.ballVelX) * horizontalDirection;
+    state.ballVelY = state.ballVelY * 0.55 + impactOffset * 6 + paddleVelocityY * PADDLE_IMPACT_TRANSFER;
+
+    const speed = Math.hypot(state.ballVelX, state.ballVelY);
+    if (speed > MAX_BALL_SPEED) {
+        const scale = MAX_BALL_SPEED / speed;
+        state.ballVelX *= scale;
+        state.ballVelY *= scale;
+    }
+}
+
 function move() {
     state.ballX += state.ballVelX;
     state.ballY += state.ballVelY;
@@ -401,9 +421,7 @@ function move() {
         state.ballY < state.playerY + PADDLE_HEIGHT &&
         state.ballX > PLAYER_X - BALL_SIZE
     ) {
-        state.ballVelX *= -1;
-        const deltaY = (state.ballY + BALL_SIZE / 2) - (state.playerY + PADDLE_HEIGHT / 2);
-        state.ballVelY = deltaY * 0.2;
+        applyPaddleBounce(state.playerY, state.playerPaddleVelY, 1);
         state.ballX = PLAYER_X + PADDLE_WIDTH;
         hitPaddle = true;
     }
@@ -414,9 +432,7 @@ function move() {
         state.ballY < state.aiY + PADDLE_HEIGHT &&
         state.ballX < AI_X + PADDLE_WIDTH + BALL_SIZE
     ) {
-        state.ballVelX *= -1;
-        const deltaY = (state.ballY + BALL_SIZE / 2) - (state.aiY + PADDLE_HEIGHT / 2);
-        state.ballVelY = deltaY * 0.2;
+        applyPaddleBounce(state.aiY, state.aiPaddleVelY, -1);
         state.ballX = AI_X - BALL_SIZE;
         hitPaddle = true;
     }
@@ -447,8 +463,8 @@ function draw() {
 
     ctx.font = '40px Arial';
     ctx.fillStyle = '#fff';
-    ctx.fillText('AI 1: ' + state.playerScore, canvas.width / 4, 50);
-    ctx.fillText('AI 2: ' + state.aiScore, (3 * canvas.width) / 4, 50);
+    ctx.fillText('AI: ' + state.playerScore, canvas.width / 4, 50);
+    ctx.fillText('Player: ' + state.aiScore, (3 * canvas.width) / 4, 50);
 }
 
 function userMoveRightPaddle() {
@@ -520,8 +536,12 @@ function gameLoop() {
     if (state.isPaused) return;
 
     move();
+    const previousPlayerY = state.playerY;
+    const previousAiY = state.aiY;
     leftAiMove();
     userMoveRightPaddle();
+    state.playerPaddleVelY = clamp(state.playerY - previousPlayerY, -PADDLE_SPEED, PADDLE_SPEED);
+    state.aiPaddleVelY = clamp(state.aiY - previousAiY, -PADDLE_SPEED, PADDLE_SPEED);
     updateConfetti();
     draw();
 
